@@ -38,20 +38,29 @@ namespace InputEventsTester
         public Form1()
         {
             InitializeComponent();
-            getInputEventsButton.Enabled = false;
-            getParametersButton.Enabled = false;
-            getCurrentValueButton.Enabled = false;
-            submitButton.Enabled = false;
+            SetButtonStates(false);
+        }
+
+        private void SetButtonStates(bool enabled)
+        {
+            getInputEventsButton.Enabled = simConnect != null;
+            getParametersButton.Enabled = enabled;
+            getCurrentValueButton.Enabled = enabled;
+            submitButton.Enabled = enabled;
         }
 
         protected override void DefWndProc(ref Message m)
         {
             if (m.Msg == WM_USER_SIMCONNECT)
             {
-                simConnect?.ReceiveMessage();
-                getInputEventsButton.Enabled = true;
-                getCurrentValueButton.Enabled = true;
-                submitButton.Enabled = true;
+                try
+                {
+                    simConnect?.ReceiveMessage();
+                }
+                catch
+                {
+                    Debug.WriteLine("Caught an exception when trying to process a SIMCONNECT message. This probably means the sim disconnected.");
+                }
             }
             else
             {
@@ -71,6 +80,7 @@ namespace InputEventsTester
                 simConnect.OnRecvGetInputEvent += SimConnect_OnRecvGetInputEvent;
                 simConnect.OnRecvEnumerateInputEventParams += SimConnect_OnRecvEnumerateInputEventParams;
                 Debug.WriteLine("Connected to simulator");
+                SetButtonStates(false);
             }
             catch (COMException ex)
             {
@@ -141,42 +151,46 @@ namespace InputEventsTester
 
         private void GetCurrentValueButton_Click(object sender, EventArgs e)
         {
-            InputEvent selectedEvent = (InputEvent)eventsComboBox.SelectedItem;
+            ulong hash = Helpers.StringToULong(hashTextBox.Text);
 
-            if (selectedEvent == null || selectedEvent.Hash == null || simConnect == null)
+            if (hash == 0 || simConnect == null)
             {
                 return;
             }
 
-            Debug.WriteLine($"Checking current value of {eventsComboBox.SelectedItem} ({eventsComboBox.SelectedValue})");
-
-            simConnect.GetInputEvent(RequestID.GetInputEventValue, (ulong)selectedEvent.Hash);
+            simConnect.GetInputEvent(RequestID.GetInputEventValue, hash);
         }
 
-        private void eventsComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            getParametersButton.Enabled = eventsComboBox.SelectedItem != null;
-        }
-
-        private void getParametersButton_Click(object sender, EventArgs e)
+        private void EventsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             InputEvent selectedEvent = (InputEvent)eventsComboBox.SelectedItem;
 
-            if (selectedEvent == null || selectedEvent.Hash == null || simConnect == null)
+            if (selectedEvent == null || selectedEvent.Hash == null)
             {
                 return;
             }
 
-            Debug.WriteLine($"Checking parameters of {eventsComboBox.SelectedItem} ({eventsComboBox.SelectedValue})");
+            hashTextBox.Text = selectedEvent.Hash.ToString();
+            SetButtonStates(!String.IsNullOrEmpty(hashTextBox.Text));
+        }
 
-            simConnect.EnumerateInputEventParams((ulong)selectedEvent.Hash);
+        private void GetParametersButton_Click(object sender, EventArgs e)
+        {
+            ulong hash = Helpers.StringToULong(hashTextBox.Text);
+
+            if (hash == 0 || simConnect == null)
+            {
+                return;
+            }
+
+            simConnect.EnumerateInputEventParams(hash);
         }
 
         private void SubmitButton_Click(object sender, EventArgs e)
         {
-            InputEvent selectedEvent = (InputEvent)eventsComboBox.SelectedItem;
+            ulong hash = Helpers.StringToULong(hashTextBox.Text);
 
-            if (selectedEvent == null || selectedEvent.Hash == null || simConnect == null)
+            if (hash == 0 || simConnect == null)
             {
                 return;
             }
@@ -184,9 +198,12 @@ namespace InputEventsTester
             // This only works because for now there are no InputEvents that take strings. They're all doubles.
             var value = Convert.ToDouble(newValueTextBox.Text);
 
-            Debug.WriteLine($"Setting {eventsComboBox.SelectedItem} ({eventsComboBox.SelectedValue}) to {value}");
+            simConnect.SetInputEvent(hash, value);
+        }
 
-            simConnect.SetInputEvent((ulong)selectedEvent.Hash, value);
+        private void HashTextBox_TextChanged(object sender, EventArgs e)
+        {
+            SetButtonStates(!String.IsNullOrEmpty(hashTextBox.Text));
         }
     }
 }
