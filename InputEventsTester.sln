@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InputEventsTester", "InputEventsTester.csproj", "{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Debug|x64.ActiveCfg = Debug|x64
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Debug|x64.Build.0 = Debug|x64
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Release|x64.ActiveCfg = Release|x64
+		{30C579CD-81D7-4A3B-8A8C-D0E90DD099AF}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A411B570-CA05-4AE8-B29C-AA8C66AABED5}
+	EndGlobalSection
+EndGlobal
