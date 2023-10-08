@@ -20,6 +20,8 @@ namespace InputEventsTester
 
     public partial class Form1 : Form
     {
+        public List<InputEvent> events = new();
+        bool subscribed = false;
         const int WM_USER_SIMCONNECT = 0x0402;
         enum RequestID
         {
@@ -79,12 +81,36 @@ namespace InputEventsTester
                 simConnect.OnRecvEnumerateInputEvents += SimConnect_OnRecvEnumerateInputEvents;
                 simConnect.OnRecvGetInputEvent += SimConnect_OnRecvGetInputEvent;
                 simConnect.OnRecvEnumerateInputEventParams += SimConnect_OnRecvEnumerateInputEventParams;
+                simConnect.OnRecvSubscribeInputEvent += SimConnect_OnRecvSubscribeInputEvent;
                 Debug.WriteLine("Connected to simulator");
                 SetButtonStates(false);
             }
             catch (COMException ex)
             {
                 Debug.WriteLine(ex.Message);
+            }
+        }
+
+        private void SimConnect_OnRecvSubscribeInputEvent(SimConnect sender, SIMCONNECT_RECV_SUBSCRIBE_INPUT_EVENT data)
+        {
+            switch (data.eType)
+            {
+                case SIMCONNECT_INPUT_EVENT_TYPE.DOUBLE:
+                    {
+                        double d = (double)data.Value[0];
+                        string details = $"Received {events.FirstOrDefault(eventItem => eventItem.Hash == data.Hash)}: {d}";
+                        Debug.WriteLine(details);
+                        eventList.Items.Add(details);
+                        break;
+                    }
+                case SIMCONNECT_INPUT_EVENT_TYPE.STRING:
+                    {
+                        SimConnect.InputEventString str = (SimConnect.InputEventString)data.Value[0];
+                        string details = $"Received {events.FirstOrDefault(eventItem => eventItem.Hash == data.Hash)}: {str.value}";
+                        Debug.WriteLine(details);
+                        eventList.Items.Add(details);
+                        break;
+                    }
             }
         }
 
@@ -116,13 +142,17 @@ namespace InputEventsTester
             {
                 if (item is SIMCONNECT_INPUT_EVENT_DESCRIPTOR descriptor)
                 {
-                    eventsComboBox.Items.Add(new InputEvent()
+                    InputEvent newEvent = new InputEvent()
                     {
                         Name = descriptor.Name,
                         Hash = descriptor.Hash,
-                    });
+                    };
+                    eventsComboBox.Items.Add(newEvent);
+                    events.Add(newEvent);
                 }
             }
+
+            listenButton.Enabled = true;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -137,6 +167,7 @@ namespace InputEventsTester
                 return;
             }
 
+            listenButton.Enabled = false;
             simConnect.EnumerateInputEvents(RequestID.GetInputEvents);
         }
 
@@ -204,6 +235,27 @@ namespace InputEventsTester
         private void HashTextBox_TextChanged(object sender, EventArgs e)
         {
             SetButtonStates(!String.IsNullOrEmpty(hashTextBox.Text));
+        }
+
+        private void ListenButton_Click(object sender, EventArgs e)
+        {
+            if (simConnect == null || events.Count == 0)
+            {
+                return;
+            }
+
+            if (subscribed)
+            {
+                listenButton.Text = "Subscribe";
+                simConnect.UnsubscribeInputEvent(0);
+                subscribed = false;
+            }
+            else
+            {
+                listenButton.Text = "Stop listening";
+                simConnect.SubscribeInputEvent(0);
+                subscribed = true;
+            }
         }
     }
 }

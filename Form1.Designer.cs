@@ -43,6 +43,8 @@
             label4 = new Label();
             label5 = new Label();
             hashTextBox = new TextBox();
+            listenButton = new Button();
+            eventList = new ListBox();
             SuspendLayout();
             // 
             // connectButton
@@ -190,11 +192,33 @@
             hashTextBox.TabIndex = 14;
             hashTextBox.TextChanged += HashTextBox_TextChanged;
             // 
+            // listenButton
+            // 
+            listenButton.Enabled = false;
+            listenButton.Location = new Point(212, 7);
+            listenButton.Name = "listenButton";
+            listenButton.Size = new Size(91, 30);
+            listenButton.TabIndex = 15;
+            listenButton.Text = "Listen";
+            listenButton.UseVisualStyleBackColor = true;
+            listenButton.Click += ListenButton_Click;
+            // 
+            // eventList
+            // 
+            eventList.FormattingEnabled = true;
+            eventList.ItemHeight = 15;
+            eventList.Location = new Point(13, 183);
+            eventList.Name = "eventList";
+            eventList.Size = new Size(407, 214);
+            eventList.TabIndex = 16;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(432, 197);
+            ClientSize = new Size(432, 402);
+            Controls.Add(eventList);
+            Controls.Add(listenButton);
             Controls.Add(hashTextBox);
             Controls.Add(label5);
             Controls.Add(label4);
@@ -235,5 +259,7 @@
         private Label label4;
         private Label label5;
         private TextBox hashTextBox;
+        private Button listenButton;
+        private ListBox eventList;
     }
 }
