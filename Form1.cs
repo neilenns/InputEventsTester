@@ -2,6 +2,7 @@ using Microsoft.FlightSimulator.SimConnect;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace InputEventsTester
 {
@@ -23,16 +24,32 @@ namespace InputEventsTester
         public List<InputEvent> events = new();
         bool subscribed = false;
         const int WM_USER_SIMCONNECT = 0x0402;
+        string aircraftName = string.Empty;
+        bool connected = false;
+
         enum RequestID
         {
-            GetInputEvents = 1,
-            GetInputEventValue = 2,
+            GetInputEvents,
+            GetInputEventValue,
+            GetAircraftTitle,
+        }
+
+        enum Definitions
+        {
+            Struct1
         }
 
         public enum InputEventType
         {
             DOUBLE,
             STRING
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        private struct Struct1
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x100)]
+            public string title;
         }
 
         SimConnect? simConnect = null;
@@ -49,6 +66,7 @@ namespace InputEventsTester
             getParametersButton.Enabled = enabled;
             getCurrentValueButton.Enabled = enabled;
             submitButton.Enabled = enabled;
+            SaveButton.Enabled = enabled;
         }
 
         protected override void DefWndProc(ref Message m)
@@ -72,23 +90,70 @@ namespace InputEventsTester
 
         private void ConnectButton_MouseClick(object sender, MouseEventArgs e)
         {
-            try
+            // Not connected so connect
+            if (simConnect == null && !connected)
             {
-                simConnect = new SimConnect("Managed Data Request", this.Handle, WM_USER_SIMCONNECT, null, 0);
-                simConnect.RegisterStruct<SIMCONNECT_RECV_GET_INPUT_EVENT, GetInputEventDouble>(InputEventType.DOUBLE);
-                simConnect.RegisterStruct<SIMCONNECT_RECV_GET_INPUT_EVENT, GetInputEventString>(InputEventType.STRING);
+                try
+                {
+                    simConnect = new SimConnect("Managed Data Request", this.Handle, WM_USER_SIMCONNECT, null, 0);
+                    simConnect.RegisterStruct<SIMCONNECT_RECV_GET_INPUT_EVENT, GetInputEventDouble>(InputEventType.DOUBLE);
+                    simConnect.RegisterStruct<SIMCONNECT_RECV_GET_INPUT_EVENT, GetInputEventString>(InputEventType.STRING);
 
-                simConnect.OnRecvEnumerateInputEvents += SimConnect_OnRecvEnumerateInputEvents;
-                simConnect.OnRecvGetInputEvent += SimConnect_OnRecvGetInputEvent;
-                simConnect.OnRecvEnumerateInputEventParams += SimConnect_OnRecvEnumerateInputEventParams;
-                simConnect.OnRecvSubscribeInputEvent += SimConnect_OnRecvSubscribeInputEvent;
-                Debug.WriteLine("Connected to simulator");
+                    simConnect.AddToDataDefinition(Definitions.Struct1, "Title", null, SIMCONNECT_DATATYPE.STRING256, 0.0f, SimConnect.SIMCONNECT_UNUSED);
+                    simConnect.RegisterDataDefineStruct<Struct1>(Definitions.Struct1);
+
+                    simConnect.OnRecvOpen += SimConnect_OnRecvOpen;
+                    simConnect.OnRecvEnumerateInputEvents += SimConnect_OnRecvEnumerateInputEvents;
+                    simConnect.OnRecvGetInputEvent += SimConnect_OnRecvGetInputEvent;
+                    simConnect.OnRecvEnumerateInputEventParams += SimConnect_OnRecvEnumerateInputEventParams;
+                    simConnect.OnRecvSubscribeInputEvent += SimConnect_OnRecvSubscribeInputEvent;
+                    simConnect.OnRecvSimobjectDataBytype += SimConnect_OnRecvSimobjectDataBytype;
+                    simConnect.OnRecvException += SimConnect_OnRecvException;
+                }
+                catch (COMException ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
+            }
+            // Connected so disconnect
+            else if (simConnect != null && connected)
+            {
+                connectButton.Text = "Connect";
+                connected = false;
+                simConnect = null;
                 SetButtonStates(false);
             }
-            catch (COMException ex)
+        }
+
+        private void SimConnect_OnRecvException(SimConnect sender, SIMCONNECT_RECV_EXCEPTION data)
+        {
+            Debug.WriteLine($"Exception received: {(uint)data.dwException}");
+        }
+
+        private void SimConnect_OnRecvSimobjectDataBytype(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE data)
+        {
+            if (data.dwRequestID == (uint)RequestID.GetAircraftTitle)
             {
-                Debug.WriteLine(ex.Message);
+                Struct1 struct1 = (Struct1)data.dwData[0];
+
+                aircraftName = struct1.title;
+                Debug.WriteLine($"Current aircraft: {aircraftName}");
             }
+        }
+
+        private void SimConnect_OnRecvOpen(SimConnect sender, SIMCONNECT_RECV_OPEN data)
+        {
+            if (simConnect == null)
+            {
+                return;
+            }
+
+            Debug.WriteLine("Connected to simulator.");
+            connectButton.Text = "Disconnect";
+            connected = true;
+            SetButtonStates(false);
+
+            simConnect.RequestDataOnSimObjectType(RequestID.GetAircraftTitle, Definitions.Struct1, 0, SIMCONNECT_SIMOBJECT_TYPE.USER);
         }
 
         private void SimConnect_OnRecvSubscribeInputEvent(SimConnect sender, SIMCONNECT_RECV_SUBSCRIBE_INPUT_EVENT data)
@@ -157,7 +222,6 @@ namespace InputEventsTester
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            simConnect?.Dispose();
         }
 
         private void GetInputEventsButton_Click(object sender, EventArgs e)
@@ -168,6 +232,7 @@ namespace InputEventsTester
             }
 
             listenButton.Enabled = false;
+            SaveButton.Enabled = true;
             simConnect.EnumerateInputEvents(RequestID.GetInputEvents);
         }
 
@@ -255,6 +320,33 @@ namespace InputEventsTester
                 listenButton.Text = "Stop listening";
                 simConnect.SubscribeInputEvent(0);
                 subscribed = true;
+            }
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            // Create a SaveFileDialog instance
+            using SaveFileDialog saveFileDialog = new();
+
+            // Set properties of the dialog
+            saveFileDialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"; // Filter for file types
+            saveFileDialog.FileName = $"{aircraftName}.json"; // Default file name
+
+            // Show the dialog
+            DialogResult result = saveFileDialog.ShowDialog();
+
+            // Check if the user clicked the 'Save' button
+            if (result == DialogResult.OK)
+            {
+                // Get the selected file name
+                string fileName = saveFileDialog.FileName;
+
+                string json = JsonSerializer.Serialize(events, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                });
+
+                File.WriteAllText(fileName, json);
             }
         }
     }

@@ -8,8 +8,8 @@ namespace InputEventsTester
 {
     public class InputEvent
     {
-        public string? Name;
-        public ulong? Hash;
+        public string? Name { get; set; }
+        public ulong? Hash { get; set; }
 
         public override string ToString()
         {

@@ -45,6 +45,7 @@
             hashTextBox = new TextBox();
             listenButton = new Button();
             eventList = new ListBox();
+            SaveButton = new Button();
             SuspendLayout();
             // 
             // connectButton
@@ -212,11 +213,23 @@
             eventList.Size = new Size(407, 214);
             eventList.TabIndex = 16;
             // 
+            // SaveButton
+            // 
+            SaveButton.Enabled = false;
+            SaveButton.Location = new Point(312, 41);
+            SaveButton.Name = "SaveButton";
+            SaveButton.Size = new Size(97, 23);
+            SaveButton.TabIndex = 17;
+            SaveButton.Text = "Save";
+            SaveButton.UseVisualStyleBackColor = true;
+            SaveButton.Click += SaveButton_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(432, 402);
+            Controls.Add(SaveButton);
             Controls.Add(eventList);
             Controls.Add(listenButton);
             Controls.Add(hashTextBox);
@@ -261,5 +274,6 @@
         private TextBox hashTextBox;
         private Button listenButton;
         private ListBox eventList;
+        private Button SaveButton;
     }
 }
