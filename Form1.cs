@@ -344,6 +344,7 @@ namespace InputEventsTester
                 string json = JsonSerializer.Serialize(events, new JsonSerializerOptions
                 {
                     WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 });
 
                 File.WriteAllText(fileName, json);
